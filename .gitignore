@@ -1,0 +1,29 @@
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Directorios de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+
+# Variables de entorno
+.env
+.env.local
+
+
+# Backups
+*.tar.gz
+*.zip
+backup/
