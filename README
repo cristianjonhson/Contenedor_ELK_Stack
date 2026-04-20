@@ -1,0 +1,153 @@
+# Contenedor ELK Stack
+
+Proyecto simple para levantar un entorno local de **ELK Stack** usando Docker.
+
+ELK Stack está compuesto por:
+
+- **Elasticsearch**: motor de búsqueda y almacenamiento de logs.
+- **Logstash**: procesamiento y envío de logs.
+- **Kibana**: interfaz web para visualizar la información.
+
+## Tecnologías utilizadas
+
+- Docker
+- Docker Compose
+- Elasticsearch
+- Logstash
+- Kibana
+
+## Estructura del proyecto
+
+```text
+Contenedor_ELK_Stack/
+├── Dockerfile
+├── docker-compose.yml
+├── .env
+├── README.md
+└── logstash/
+    ├── config/
+    │   └── logstash.yml
+    └── pipeline/
+        └── logstash.conf
+````
+
+## Requisitos previos
+
+Tener instalado:
+
+* Docker
+* Docker Compose
+* Git
+
+Para verificar:
+
+```bash
+docker --version
+docker compose version
+git --version
+```
+
+## Levantar el proyecto
+
+Desde la raíz del proyecto ejecutar:
+
+```bash
+docker compose up -d --build
+```
+
+## Verificar contenedores
+
+```bash
+docker ps
+```
+
+Deberías ver contenedores para:
+
+* Elasticsearch
+* Logstash
+* Kibana
+
+## Accesos
+
+Elasticsearch:
+
+```text
+http://localhost:9200
+```
+
+Kibana:
+
+```text
+http://localhost:5601
+```
+
+Logstash TCP:
+
+```text
+localhost:5000
+```
+
+Logstash Beats:
+
+```text
+localhost:5044
+```
+
+## Probar envío de logs
+
+Puedes enviar un log de prueba con:
+
+```bash
+echo '{"message":"Hola desde Logstash","level":"INFO","app":"demo-elk"}' | nc localhost 5000
+```
+
+Luego entra a Kibana y busca el índice:
+
+```text
+logs-*
+```
+
+## Detener el proyecto
+
+```bash
+docker compose down
+```
+
+## Eliminar contenedores y volúmenes
+
+```bash
+docker compose down -v
+```
+
+## Subir cambios a GitHub
+
+```bash
+git add .
+git commit -m "Add README"
+git push -u origin main
+```
+
+## Nota
+
+Este proyecto está pensado para uso local y aprendizaje.
+La seguridad de Elasticsearch está desactivada para simplificar el laboratorio.
+
+No se recomienda usar esta configuración directamente en producción.
+
+````
+
+Luego guarda con:
+
+```bash
+CTRL + O
+Enter
+CTRL + X
+````
+
+Y súbelo:
+
+```bash
+git add README.md
+git commit -m "Add simple README"
+git push -u origin main
+```
