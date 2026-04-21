@@ -33,9 +33,9 @@ services:
         ELASTIC_VERSION: ${ELASTIC_VERSION}
     container_name: logstash
     ports:
-      - "5044:5044"
-      - "5000:5000"
-      - "9600:9600"
+        - "5044:5044"
+        - "5050:5000"
+        - "9600:9600"
     networks:
       - elk
     depends_on:
