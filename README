@@ -107,6 +107,60 @@ Luego entra a Kibana y busca el índice:
 logs-*
 ```
 
+## Configuración de Kibana y Enrollment Token
+
+Al iniciar Kibana por primera vez, puede aparecer una pantalla solicitando un **Enrollment Token** con el mensaje:
+
+```text
+Configure Elastic to get started
+Enrollment token
+Enter an enrollment token.
+````
+
+Este token se utiliza cuando Elasticsearch tiene la seguridad habilitada mediante `xpack.security.enabled=true`. Sin embargo, este proyecto está configurado para ejecutarse como laboratorio local, por lo que la seguridad de Elasticsearch está deshabilitada:
+
+```yaml
+xpack.security.enabled=false
+```
+
+Por esta razón, Kibana no debería requerir un enrollment token. Para evitar esa pantalla, el servicio de Kibana se configura directamente para conectarse a Elasticsearch mediante la variable de entorno:
+
+```yaml
+kibana:
+  image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION}
+  container_name: kibana
+  environment:
+    - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    - XPACK_SECURITY_ENABLED=false
+  ports:
+    - "5601:5601"
+  networks:
+    - elk
+  depends_on:
+    - elasticsearch
+```
+
+Si Kibana sigue solicitando el token, es posible que haya quedado una configuración previa almacenada en los volúmenes de Docker. En ese caso, se recomienda reiniciar el stack eliminando los volúmenes:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+Luego se puede validar que Elasticsearch esté respondiendo correctamente con:
+
+```bash
+curl http://localhost:9200
+```
+
+Y acceder a Kibana desde el navegador:
+
+```text
+http://localhost:5601
+```
+
+> Nota: Esta configuración es recomendada solo para entornos locales o de laboratorio. Para producción se debe habilitar seguridad, autenticación, certificados TLS y credenciales de acceso.
+
 ## Detener el proyecto
 
 ```bash
