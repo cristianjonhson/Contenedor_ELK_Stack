@@ -19,7 +19,7 @@ services:
     container_name: kibana
     environment:
      - SERVER_NAME=kibana
-     - ELASTICSEARCH_HOSTS='["http://elasticsearch:9200"]'
+     - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
      - XPACK_SECURITY_ENABLED="false"
      - INTERACTIVESETUP_ENABLED="false"
     ports:
