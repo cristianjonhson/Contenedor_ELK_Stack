@@ -1,14 +1,24 @@
 # Contenedor ELK Stack
 
-Proyecto simple para levantar un entorno local de **ELK Stack** usando Docker.
+Stack local de observabilidad con Elasticsearch, Logstash y Kibana (ELK) ejecutado con Docker Compose.
 
-ELK Stack está compuesto por:
+El objetivo de este repositorio es ofrecer un entorno rápido para desarrollo, pruebas y aprendizaje de ingestión de logs en Elasticsearch, usando Logstash como pipeline de entrada y Kibana para visualización.
 
-- **Elasticsearch**: motor de búsqueda y almacenamiento de logs.
-- **Logstash**: procesamiento y envío de logs.
-- **Kibana**: interfaz web para visualizar la información.
+## Descripción Del Proyecto
 
-## Tecnologías utilizadas
+Este proyecto levanta 3 servicios:
+
+- Elasticsearch: almacenamiento e indexación de eventos.
+- Logstash: recepción de logs por TCP/Beats y envío a Elasticsearch.
+- Kibana: exploración y visualización de datos.
+
+La configuración está pensada para laboratorio local:
+
+- Nodo único de Elasticsearch.
+- Seguridad desactivada (`xpack.security.enabled=false`).
+- Volumen persistente para datos de Elasticsearch.
+
+## Tecnologías
 
 - Docker
 - Docker Compose
@@ -16,30 +26,29 @@ ELK Stack está compuesto por:
 - Logstash
 - Kibana
 
-## Estructura del proyecto
+## Estructura Del Repositorio
 
 ```text
 Contenedor_ELK_Stack/
+├── .env
 ├── Dockerfile
 ├── docker-compose.yml
-├── .env
 ├── README.md
 └── logstash/
     ├── config/
     │   └── logstash.yml
     └── pipeline/
         └── logstash.conf
-````
+```
 
-## Requisitos previos
+## Requisitos
 
-Tener instalado:
+- Docker Engine 20+
+- Docker Compose v2+
+- Git (opcional, para clonar/versionar)
+- `curl` y `nc` (opcional, para pruebas rápidas)
 
-* Docker
-* Docker Compose
-* Git
-
-Para verificar:
+Verificación:
 
 ```bash
 docker --version
@@ -47,161 +56,140 @@ docker compose version
 git --version
 ```
 
-## Levantar el proyecto
+## Configuración
 
-Desde la raíz del proyecto ejecutar:
+### Variables De Entorno
+
+El archivo `.env` define la versión del stack Elastic usada en `docker-compose.yml`:
+
+```env
+ELASTIC_VERSION=9.3.4
+```
+
+Notas:
+
+- `docker-compose.yml` utiliza `${ELASTIC_VERSION}` para Elasticsearch y Kibana.
+- `Dockerfile` de Logstash también recibe `ELASTIC_VERSION` como build-arg.
+
+### Puertos Expuestos
+
+- `9200`: Elasticsearch HTTP API.
+- `9300`: transporte interno de Elasticsearch.
+- `5601`: Kibana.
+- `5050`: entrada TCP de Logstash (mapeada al puerto interno `5000`).
+- `5044`: entrada Beats de Logstash.
+- `9600`: API HTTP de Logstash.
+
+## Cómo Ejecutarlo
+
+Desde la raíz del proyecto:
 
 ```bash
 docker compose up -d --build
 ```
 
-## Verificar contenedores
+Verificar estado:
 
 ```bash
-docker ps
+docker compose ps
 ```
 
-Deberías ver contenedores para:
+## Validación Rápida
 
-* Elasticsearch
-* Logstash
-* Kibana
-
-## Accesos
-
-Elasticsearch:
-
-```text
-http://localhost:9200
-```
-
-Kibana:
-
-```text
-http://localhost:5601
-```
-
-Logstash TCP:
-
-```text
-localhost:5000
-```
-
-Logstash Beats:
-
-```text
-localhost:5044
-```
-
-## Probar envío de logs
-
-Puedes enviar un log de prueba con:
-
-```bash
-echo '{"message":"Hola desde Logstash","level":"INFO","app":"demo-elk"}' | nc localhost 5000
-```
-
-Luego entra a Kibana y busca el índice:
-
-```text
-logs-*
-```
-
-## Configuración de Kibana y Enrollment Token
-
-Al iniciar Kibana por primera vez, puede aparecer una pantalla solicitando un **Enrollment Token** con el mensaje:
-
-```text
-Configure Elastic to get started
-Enrollment token
-Enter an enrollment token.
-````
-
-Este token se utiliza cuando Elasticsearch tiene la seguridad habilitada mediante `xpack.security.enabled=true`. Sin embargo, este proyecto está configurado para ejecutarse como laboratorio local, por lo que la seguridad de Elasticsearch está deshabilitada:
-
-```yaml
-xpack.security.enabled=false
-```
-
-Por esta razón, Kibana no debería requerir un enrollment token. Para evitar esa pantalla, el servicio de Kibana se configura directamente para conectarse a Elasticsearch mediante la variable de entorno:
-
-```yaml
-kibana:
-  image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION}
-  container_name: kibana
-  environment:
-    - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    - XPACK_SECURITY_ENABLED=false
-  ports:
-    - "5601:5601"
-  networks:
-    - elk
-  depends_on:
-    - elasticsearch
-```
-
-Si Kibana sigue solicitando el token, es posible que haya quedado una configuración previa almacenada en los volúmenes de Docker. En ese caso, se recomienda reiniciar el stack eliminando los volúmenes:
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
-
-Luego se puede validar que Elasticsearch esté respondiendo correctamente con:
+### 1) Validar Elasticsearch
 
 ```bash
 curl http://localhost:9200
 ```
 
-Y acceder a Kibana desde el navegador:
+### 2) Validar Kibana
+
+Abrir en navegador:
 
 ```text
 http://localhost:5601
 ```
 
-> Nota: Esta configuración es recomendada solo para entornos locales o de laboratorio. Para producción se debe habilitar seguridad, autenticación, certificados TLS y credenciales de acceso.
+### 3) Enviar Un Log De Prueba A Logstash (TCP)
 
-## Detener el proyecto
+```bash
+echo '{"message":"Hola desde Logstash","level":"INFO","app":"demo-elk"}' | nc localhost 5050
+```
+
+### 4) Consultar Índices En Elasticsearch
+
+```bash
+curl "http://localhost:9200/_cat/indices?v"
+```
+
+Deberías ver índices con prefijo `logs-`.
+
+## Pipeline De Logstash
+
+Configuración actual en `logstash/pipeline/logstash.conf`:
+
+- Inputs:
+  - `tcp` en puerto `5000` con codec `json`.
+  - `beats` en puerto `5044`.
+- Filter:
+  - sin transformaciones por defecto.
+- Output:
+  - Elasticsearch en `http://elasticsearch:9200`.
+  - Índice `logs-%{+YYYY.MM.dd}`.
+  - Salida adicional por consola (`stdout` con `rubydebug`).
+
+## Operaciones Comunes
+
+Detener servicios:
 
 ```bash
 docker compose down
 ```
 
-## Eliminar contenedores y volúmenes
+Detener y eliminar volúmenes (limpieza total):
 
 ```bash
 docker compose down -v
 ```
 
-## Subir cambios a GitHub
+Ver logs de un servicio:
 
 ```bash
-git add .
-git commit -m "Add README"
-git push -u origin main
+docker compose logs -f logstash
+docker compose logs -f elasticsearch
+docker compose logs -f kibana
 ```
 
-## Nota
+## Solución De Problemas
 
-Este proyecto está pensado para uso local y aprendizaje.
-La seguridad de Elasticsearch está desactivada para simplificar el laboratorio.
+### Kibana solicita configuración inicial o token
 
-No se recomienda usar esta configuración directamente en producción.
+Este proyecto desactiva seguridad para entorno local, por lo que no debería requerir enrollment token.
 
-````
+Si aparece la pantalla de setup:
 
-Luego guarda con:
-
-```bash
-CTRL + O
-Enter
-CTRL + X
-````
-
-Y súbelo:
+1. Reinicia completamente los contenedores y volúmenes.
+2. Levanta de nuevo el stack.
 
 ```bash
-git add README.md
-git commit -m "Add simple README"
-git push -u origin main
+docker compose down -v
+docker compose up -d --build
 ```
+
+### No aparece índice `logs-*`
+
+Revisar:
+
+1. Que el evento se esté enviando al puerto host `5050`.
+2. Logs de Logstash para confirmar recepción/parsing.
+3. Estado de Elasticsearch.
+
+## Seguridad Y Alcance
+
+Configuración orientada a desarrollo local y aprendizaje:
+
+- Sin autenticación.
+- Sin TLS.
+- Sin hardening de red.
+
+No usar esta configuración en producción sin controles de seguridad adicionales.
